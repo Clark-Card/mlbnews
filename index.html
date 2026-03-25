@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MLB Daily News</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0b1220;
+      color: white;
+    }
+
+    header {
+      background: linear-gradient(90deg, #0a2540, #1e3a8a);
+      padding: 20px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #111827;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .card-content {
+      padding: 15px;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    .source {
+      font-size: 12px;
+      margin-top: 10px;
+      color: #60a5fa;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>⚾ MLB Daily News</header>
+
+<div class="container">
+  <div class="news-grid" id="newsGrid"></div>
+</div>
+
+<footer>Powered by MLB & ESPN (Demo Project)</footer>
+
+<script>
+const RSS_FEEDS = [
+  {
+    name: "MLB",
+    url: "https://www.mlb.com/feeds/news/rss.xml"
+  },
+  {
+    name: "ESPN Baseball",
+    url: "https://www.espn.com/espn/rss/mlb/news"
+  }
+];
+
+async function fetchRSS(feed) {
+  const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
+  const data = await response.json();
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(data.contents, "text/xml");
+
+  return Array.from(xml.querySelectorAll("item")).slice(0, 6).map(item => ({
+    title: item.querySelector("title")?.textContent,
+    link: item.querySelector("link")?.textContent,
+    description: item.querySelector("description")?.textContent,
+    source: feed.name
+  }));
+}
+
+function createCard(article) {
+  const div = document.createElement("div");
+  div.className = "card";
+
+  div.innerHTML = `
+    <img src="https://source.unsplash.com/600x400/?baseball" />
+    <div class="card-content">
+      <h3>${article.title}</h3>
+      <p>${article.description?.slice(0, 100) || "Click to read more..."}</p>
+      <div class="source">${article.source}</div>
+    </div>
+  `;
+
+  div.onclick = () => {
+    window.open(article.link, "_blank");
+  };
+
+  return div;
+}
+
+async function loadNews() {
+  const grid = document.getElementById("newsGrid");
+  grid.innerHTML = "Loading...";
+
+  let allArticles = [];
+
+  for (let feed of RSS_FEEDS) {
+    const articles = await fetchRSS(feed);
+    allArticles = allArticles.concat(articles);
+  }
+
+  grid.innerHTML = "";
+
+  allArticles.forEach(article => {
+    grid.appendChild(createCard(article));
+  });
+}
+
+loadNews();
+</script>
+
+</body>
+</html>

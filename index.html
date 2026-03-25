@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cubs Central</title>
+
+<style>
+body {margin:0;font-family:Arial;background:#0b1220;color:white;}
+header {display:flex;justify-content:space-between;align-items:center;padding:15px 30px;background:#111827;}
+.logo {font-size:22px;font-weight:bold;color:#60a5fa;}
+.search {padding:6px 10px;border-radius:8px;border:none;}
+
+.container {max-width:1100px;margin:auto;padding:20px;}
+
+.featured {
+  background:#111827;
+  padding:20px;
+  border-radius:16px;
+  margin-bottom:20px;
+  cursor:pointer;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:20px;
+}
+
+.card {
+  background:#111827;
+  border-radius:16px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:0.2s;
+}
+.card:hover {transform:translateY(-5px);}
+
+.card img {width:100%;height:160px;object-fit:cover;}
+.card-content {padding:12px;}
+
+.tag {
+  font-size:11px;
+  padding:3px 6px;
+  border-radius:6px;
+  display:inline-block;
+  margin-bottom:6px;
+}
+.original {background:#16a34a;}
+.agg {background:#1e40af;}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">🧢 Cubs Central</div>
+<input class="search" id="search" placeholder="Search Cubs news..." oninput="render()">
+</header>
+
+<div class="container">
+
+<div class="featured" id="featured"></div>
+
+<div class="grid" id="grid"></div>
+
+</div>
+
+<script>
+
+// 🧠 YOUR ORIGINAL ARTICLES (edit these!!)
+const ORIGINAL_ARTICLES = [
+{
+title: "Why the Cubs Are Ready for a Breakout Season",
+description: "A deep dive into the Cubs roster, prospects, and why this could be their year.",
+link: "#",
+type: "original"
+},
+{
+title: "Top 5 Cubs Players to Watch This Month",
+description: "These players could change everything for Chicago.",
+link: "#",
+type: "original"
+}
+];
+
+const RSS_FEEDS = [
+{ name:"MLB", url:"https://www.mlb.com/feeds/news/rss.xml" },
+{ name:"ESPN", url:"https://www.espn.com/espn/rss/mlb/news" }
+];
+
+let articles = [];
+
+async function fetchRSS(feed) {
+const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
+const data = await res.json();
+const xml = new DOMParser().parseFromString(data.contents,"text/xml");
+
+return Array.from(xml.querySelectorAll("item")).map(item => ({
+title: item.querySelector("title")?.textContent,
+link: item.querySelector("link")?.textContent,
+description: item.querySelector("description")?.textContent,
+type: "agg"
+}));
+}
+
+// 🔥 FILTER ONLY CUBS NEWS
+function isCubsArticle(article){
+return article.title.toLowerCase().includes("cubs") ||
+article.description?.toLowerCase().includes("cubs");
+}
+
+function render(){
+const grid = document.getElementById('grid');
+const featured = document.getElementById('featured');
+const search = document.getElementById('search').value.toLowerCase();
+
+// combine your articles + fetched ones
+let combined = [...ORIGINAL_ARTICLES, ...articles];
+
+// filter cubs + search
+combined = combined.filter(a =>
+isCubsArticle(a) &&
+a.title.toLowerCase().includes(search)
+);
+
+// FEATURED = your article first if exists
+featured.innerHTML = "";
+if(combined.length > 0){
+featured.innerHTML = `<h2>${combined[0].title}</h2><p>${combined[0].description}</p>`;
+featured.onclick = () => window.open(combined[0].link);
+}
+
+// GRID
+grid.innerHTML = "";
+combined.slice(1).forEach(a=>{
+let div=document.createElement('div');
+div.className='card';
+
+div.innerHTML=`
+<img src="https://source.unsplash.com/600x400/?chicago,cubs,baseball">
+<div class="card-content">
+<div class="tag ${a.type==='original'?'original':'agg'}">
+${a.type==='original'?'Original':'News'}
+</div>
+<h3>${a.title}</h3>
+</div>
+`;
+
+div.onclick=()=>window.open(a.link);
+grid.appendChild(div);
+});
+}
+
+async function load(){
+articles = [];
+
+for(let f of RSS_FEEDS){
+articles = articles.concat(await fetchRSS(f));
+}
+
+render();
+}
+
+load();
+
+</script>
+
+</body>
+</html>

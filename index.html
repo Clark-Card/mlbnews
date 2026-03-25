@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Central</title>
+<style>
+body {margin:0;font-family:Arial;background:#0b1220;color:white;}
+header {background:#111827;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1f2937;}
+.logo {font-size:22px;font-weight:bold;color:#60a5fa;}
+nav a {margin:0 10px;color:#9ca3af;text-decoration:none;cursor:pointer;}
+nav a:hover {color:white;}
+.search {padding:6px 10px;border-radius:8px;border:none;}
+.container {max-width:1200px;margin:auto;padding:20px;}
+.featured {background:#111827;border-radius:16px;padding:20px;margin-bottom:20px;cursor:pointer;}
+.featured h2 {margin:0 0 10px;}
+.grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+.card {background:#111827;border-radius:16px;overflow:hidden;cursor:pointer;transition:0.2s;}
+.card:hover {transform:translateY(-5px);box-shadow:0 10px 25px rgba(0,0,0,0.5);}
+.card img {width:100%;height:160px;object-fit:cover;}
+.card-content {padding:12px;}
+.source {font-size:12px;color:#60a5fa;margin-top:8px;}
+.scoreboard {display:flex;gap:10px;overflow-x:auto;margin-bottom:20px;}
+.game {background:#111827;padding:10px;border-radius:12px;min-width:120px;text-align:center;font-size:12px;}
+button {background:#1e40af;color:white;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">⚾ MLB Central</div>
+<nav>
+<a onclick="filterSource('ALL')">All</a>
+<a onclick="filterSource('MLB')">MLB</a>
+<a onclick="filterSource('ESPN')">ESPN</a>
+</nav>
+<input class="search" id="search" placeholder="Search..." oninput="render()" />
+<button onclick="toggleTheme()">Theme</button>
+</header>
+
+<div class="container">
+
+<div class="scoreboard" id="scoreboard"></div>
+
+<div class="featured" id="featured"></div>
+
+<div class="grid" id="grid"></div>
+
+</div>
+
+<script>
+const RSS_FEEDS = [
+{ name:"MLB", url:"https://www.mlb.com/feeds/news/rss.xml" },
+{ name:"ESPN", url:"https://www.espn.com/espn/rss/mlb/news" }
+];
+
+let articles = [];
+let filter = 'ALL';
+
+async function fetchRSS(feed) {
+const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`);
+const data = await res.json();
+const xml = new DOMParser().parseFromString(data.contents,"text/xml");
+return Array.from(xml.querySelectorAll("item")).map(item => ({
+title: item.querySelector("title")?.textContent,
+link: item.querySelector("link")?.textContent,
+description: item.querySelector("description")?.textContent,
+source: feed.name
+}));
+}
+
+function render() {
+const grid = document.getElementById('grid');
+const featured = document.getElementById('featured');
+const search = document.getElementById('search').value.toLowerCase();
+
+let filtered = articles.filter(a =>
+(filter==='ALL'||a.source===filter) &&
+a.title.toLowerCase().includes(search)
+);
+
+if(filtered.length===0) return;
+
+featured.innerHTML = `<h2>${filtered[0].title}</h2><p>${filtered[0].description||''}</p>`;
+featured.onclick = ()=>window.open(filtered[0].link);
+
+grid.innerHTML = '';
+filtered.slice(1).forEach(a=>{
+let div=document.createElement('div');
+div.className='card';
+div.innerHTML=`<img src="https://source.unsplash.com/600x400/?baseball"><div class="card-content"><h3>${a.title}</h3><div class="source">${a.source}</div></div>`;
+div.onclick=()=>window.open(a.link);
+grid.appendChild(div);
+});
+}
+
+function filterSource(src){filter=src;render();}
+
+function toggleTheme(){
+if(document.body.style.background==="white"){
+document.body.style.background="#0b1220";
+document.body.style.color="white";
+}else{
+document.body.style.background="white";
+document.body.style.color="black";
+}
+}
+
+function fakeScores(){
+const teams=["NYY","LAD","BOS","CHC","ATL","HOU"];
+const board=document.getElementById('scoreboard');
+board.innerHTML='';
+for(let i=0;i<5;i++){
+let g=document.createElement('div');
+g.className='game';
+g.innerHTML=`${teams[Math.floor(Math.random()*teams.length)]}<br>${Math.floor(Math.random()*10)} - ${Math.floor(Math.random()*10)}<br>${teams[Math.floor(Math.random()*teams.length)]}`;
+board.appendChild(g);
+}
+}
+
+async function load(){
+articles=[];
+for(let f of RSS_FEEDS){
+articles=articles.concat(await fetchRSS(f));
+}
+render();
+fakeScores();
+}
+
+setInterval(load,300000);
+load();
+</script>
+
+</body>
+</html>

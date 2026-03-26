@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Color Tap</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      justify-content: space-between;
+      transition: background-color 0.2s ease;
+    }
+
+    #buttons {
+      display: flex;
+      justify-content: space-around;
+      padding: 20px;
+    }
+
+    button {
+      flex: 1;
+      margin: 0 10px;
+      padding: 20px;
+      font-size: 24px;
+      border: none;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
+
+  <div></div>
+
+  <div id="buttons"></div>
+
+  <script>
+    const colors = [
+      { name: "Red", value: "#ff3b30" },
+      { name: "Blue", value: "#007aff" },
+      { name: "Green", value: "#34c759" },
+      { name: "Yellow", value: "#ffcc00" },
+      { name: "Purple", value: "#af52de" },
+      { name: "Orange", value: "#ff9500" }
+    ];
+
+    const buttonContainer = document.getElementById("buttons");
+
+    let currentColor;
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      speechSynthesis.cancel(); // keep it snappy
+      speechSynthesis.speak(utterance);
+    }
+
+    function playBoop() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    }
+
+    function getRandomColors(count) {
+      return [...colors].sort(() => 0.5 - Math.random()).slice(0, count);
+    }
+
+    function nextRound() {
+      // pick correct color
+      currentColor = colors[Math.floor(Math.random() * colors.length)];
+
+      // set background
+      document.body.style.backgroundColor = currentColor.value;
+
+      // pick choices
+      const choices = getRandomColors(3);
+
+      // ensure correct answer is included
+      if (!choices.find(c => c.name === currentColor.name)) {
+        choices[Math.floor(Math.random() * choices.length)] = currentColor;
+      }
+
+      // render buttons
+      buttonContainer.innerHTML = "";
+      choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.innerText = choice.name;
+
+        btn.onclick = () => {
+          playBoop();
+          speak(choice.name);
+
+          setTimeout(nextRound, 200); // keep it fast
+        };
+
+        buttonContainer.appendChild(btn);
+      });
+    }
+
+    nextRound();
+  </script>
+
+</body>
+</html>
